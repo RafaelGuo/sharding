@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tdx.sharding.mapper.ShardingMapper">
+    <insert id="insertResourceBasic" parameterType="map">
+        insert into sns_resource_basic (res_id, user_id, title, summary, create_time) values (#{res_id}, #{userId}, #{title}, #{summary}, now())
+    </insert>
+
+    <insert id="insertResourceCache" parameterType="map">
+        insert into sns_resource_cache (res_id) values (#{res_id})
+    </insert>
+
+    <insert id="insertEssay" parameterType="map">
+        insert into sns_resource_essay (res_id, content) values (#{res_id}, #{content})
+    </insert>
+
+    <insert id="insertUserResRelation" parameterType="map">
+        insert into sns_user_res_relation (user_id, res_id, create_time) values (#{userId}, #{res_id}, now())
+    </insert>
+
+    <select id="selectArticleDetail" resultType="map">
+        select
+                basic.res_id as resId,
+                basic.title,
+                basic.summary,
+                basic.user_id as userId,
+                essay.content,
+                scache.view_count as viewCount
+        from sns_resource_basic basic
+        left join sns_resource_essay essay on basic.res_id = essay.res_id
+        left join sns_resource_cache scache on basic.res_id = scache.res_id
+        where basic.res_id = #{resId}
+    </select>
+
+    <select id="selectArticleList" resultType="map">
+        select
+            basic.res_id as resId,
+            basic.title,
+            basic.summary,
+            basic.user_id as userId,
+            scache.view_count as viewCount,
+            essay.content
+        from sns_resource_basic basic
+        left join sns_resource_cache scache on scache.res_id = basic.res_id
+        left join sns_resource_essay essay on basic.res_id = essay.res_id
+        where basic.res_id in
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="selectArticle" resultType="map">
+        select
+                basic.res_id as resId,
+                basic.title,
+                basic.summary,
+                basic.user_id as userId,
+                essay.content,
+                scache.view_count as viewCount
+        from sns_resource_basic basic
+        left join sns_resource_essay essay on basic.res_id = essay.res_id
+        left join sns_resource_cache scache on basic.res_id = scache.res_id
+        where basic.user_id = #{userId}
+        limit #{beginIndex}, #{pageSize}
+    </select>
+
+    <select id="selectResIdByUserId" resultType="String">
+        select res_id as resId from sns_user_res_relation where user_id = #{userId} limit #{beginIndex}, #{pageSize}
+    </select>
+
+    <select id="selectArticleCount" resultType="int">
+        select count(*) from sns_user_res_relation where user_id = #{userId}
+    </select>
+</mapper>
